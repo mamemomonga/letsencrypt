@@ -7,11 +7,11 @@
 
 ## インストール
 
-	$ sudo mkdir /usr/local/letsencrypt
-	$ sudo chown `whoami` /usr/local/letsencrypt
-	$ cd /usr/local/letsencrypt
-	$ git clone --depth 1 https://github.com/letsencrypt/letsencrypt .
-	$ sudo ./letsencrypt-auto --help
+	$ sudo mkdir /usr/local/certbot
+	$ sudo chown `whoami` /usr/local/certbot
+	$ cd /usr/local/certbot
+	$ git clone --depth 1 https://github.com/certbot/certbot .
+	$ sudo ./certbot-auto --help
 
 ## ドメイン名の設定
 
@@ -19,8 +19,8 @@
 
 ## acme-challenge用の公開ディレクトリを用意する
 
-	$ sudo mkdir -p -m 0755 /usr/local/letsencrypt/var/$LE_TARGET_DOMAIN/webroot
-	$ ls -al /usr/local/letsencrypt/var
+	$ sudo mkdir -p -m 0755 /usr/local/certbot/var/$LE_TARGET_DOMAIN/webroot
+	$ ls -al /usr/local/certbot/var
 
 nginx の設定
 
@@ -29,7 +29,7 @@ nginx の設定
 	   listen               80;
 	   server_name          $LE_TARGET_DOMAIN;
 	   location /.well-known {
-	        root /usr/local/letsencrypt/var/$LE_TARGET_DOMAIN/webroot;
+	        root /usr/local/certbot/var/$LE_TARGET_DOMAIN/webroot;
 	   }
 	}
 	EOS
@@ -38,10 +38,10 @@ nginx の設定
 
 ## 証明書の作成・取得
 
-	$ cd /usr/local/letsencrypt
+	$ cd /usr/local/certbot
 
-	$ sudo ./letsencrypt-auto certonly --webroot \
-	  --webroot-path /usr/local/letsencrypt/var/$LE_TARGET_DOMAIN/webroot \
+	$ sudo ./certbot-auto certonly --webroot \
+	  --webroot-path /usr/local/certbot/var/$LE_TARGET_DOMAIN/webroot \
 	  -d $LE_TARGET_DOMAIN  
 
 	$ sudo openssl dhparam -out /etc/nginx/dhparams.pem 2048
@@ -57,7 +57,7 @@ Forward Secrecy, HTTP Strict Transport Security, http2 に対応させ、192.168
 	   server_name          ###TARGET_DOMAIN###;
 	   server_tokens        off;
 	   location /.well-known {
-	      root /usr/local/letsencrypt/var/###TARGET_DOMAIN###/webroot;
+	      root /usr/local/certbot/var/###TARGET_DOMAIN###/webroot;
 	   }
 	   location / {
 	      rewrite ^/(.+)$ https://###TARGET_DOMAIN###/$1 permanent;
@@ -80,7 +80,7 @@ Forward Secrecy, HTTP Strict Transport Security, http2 に対応させ、192.168
 	
 	   add_header Strict-Transport-Security "max-age=15768000";
 	   ssl_certificate     /etc/letsencrypt/live/###TARGET_DOMAIN###/fullchain.pem;
-	   ssl_certificate_key /etc/letsencrypt/live/###TARGET_DOMAIN###N/privkey.pem;
+	   ssl_certificate_key /etc/letsencrypt/live/###TARGET_DOMAIN###/privkey.pem;
 	   ssl_dhparam         /etc/nginx/dhparams.pem;
 	
 	   location / {
@@ -102,12 +102,14 @@ Forward Secrecy, HTTP Strict Transport Security, http2 に対応させ、192.168
 
 証明書は90日で失効するので、月に一回自動更新仕掛けを作る。月のランダムな1日の3時の何分かに実行。
 
-	$ perl -e "printf('%02d %02d %02d * * root /usr/local/letsencrypt/letsencrypt-auto renew --force-renew && service nginx restart'.qq{\n},int(rand()*59),3,int(rand()*30)+1)" > /tmp/letsencrypt
+	$ perl -e "printf('%02d %02d %02d * * root /usr/local/certbot/certbot-auto renew --force-renew && service nginx restart'.qq{\n},int(rand()*59),3,int(rand()*30)+1)" > /tmp/certbot
 
-	$ cat /tmp/letsencrypt
-	28 03 12 * * root /usr/local/letsencrypt/letsencrypt-auto renew --force-renew && service nginx restart
+	$ cat /tmp/certbot
+	28 03 12 * * root /usr/local/letsencrypt/certbot-auto renew --force-renew && service nginx restart
 
-	$ sudo mv /tmp/letsencrypt /etc/cron.d/
-	$ sudo chown root:root /etc/cron.d/letsencrypt
-	$ sudo chmod 644 /etc/cron.d/letsencrypt
+	$ sudo mv /tmp/certbot /etc/cron.d/
+	$ sudo chown root:root /etc/cron.d/certbot
+	$ sudo chmod 644 /etc/cron.d/certbot
+
+
 
