@@ -8,16 +8,34 @@
 ## インストール
 
 	$ sudo mkdir /usr/local/certbot
-	$ sudo chown `whoami` /usr/local/certbot
+	$ sudo chown $(whoami) /usr/local/certbot
 	$ cd /usr/local/certbot
 	$ git clone --depth 1 https://github.com/certbot/certbot .
 	$ sudo ./certbot-auto --help
 
-## ドメイン名の設定
+### ドメイン名の設定
 
 	$ export LE_TARGET_DOMAIN=example.domain.dom
+	$ export LE_EMAIL=name@domain.com
 
-## acme-challenge用の公開ディレクトリを用意する
+## DNS認証
+
+	$ sudo ./certbot-auto certonly \
+	  --debug \
+	  --manual \
+	  --agree-tos \
+	  --manual-public-ip-logging-ok \
+	  --preferred-challenges dns \
+	  --email $LE_EMAIL \
+	  --domain $LE_TARGET_DOMAIN  
+
+画面表示に従って TXT レコードをDNSに追加する
+
+/etc/letsencrypt/live/$LE_TARGET_DOMAIN 以下に証明書が保存される
+
+## Web認証
+
+### acme-challenge用の公開ディレクトリを用意する
 
 	$ sudo mkdir -p -m 0755 /usr/local/certbot/var/$LE_TARGET_DOMAIN/webroot
 	$ ls -al /usr/local/certbot/var
@@ -36,13 +54,14 @@ nginx の設定
 
 	$ sudo service nginx restart
 
-## 証明書の作成・取得
+### 証明書の作成・取得
 
 	$ cd /usr/local/certbot
 
-	$ sudo ./certbot-auto certonly --webroot \
+	$ sudo ./certbot-auto certonly \
+		--webroot \
 	  --webroot-path /usr/local/certbot/var/$LE_TARGET_DOMAIN/webroot \
-	  -d $LE_TARGET_DOMAIN  
+	  --domain $LE_TARGET_DOMAIN  
 
 	$ sudo openssl dhparam -out /etc/nginx/dhparams.pem 2048
 
@@ -98,7 +117,7 @@ Forward Secrecy, HTTP Strict Transport Security, http2 に対応させ、192.168
 
 	$ sudo service nginx restart
 
-## 証明書の自動更新
+### 証明書の自動更新
 
 証明書は90日で失効するので、月に一回自動更新仕掛けを作る。月のランダムな1日の3時の何分かに実行。
 
