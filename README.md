@@ -131,4 +131,14 @@ Forward Secrecy, HTTP Strict Transport Security, http2 に対応させ、192.168
 	$ sudo chmod 644 /etc/cron.d/certbot
 
 
+### エラーが出る場合
+
+	Creating virtual environment...
+	
+のあとにPythonのエラーが出る場合は、ロケールを変更して実行すればいいらしい。
+
+	$ export LC_ALL="en_US.UTF-8"
+	$ export LC_CTYPE="en_US.UTF-8"
+
+https://github.com/certbot/certbot/issues/2883
 
